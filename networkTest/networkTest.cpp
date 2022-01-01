@@ -2,8 +2,6 @@
 #include <comdef.h> 
 #include <codecvt>
 
-std::shared_ptr<wname::io::iocp::CIocp> g_pIocp;
-
 class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 {
 	#pragma region Public_Method
@@ -15,13 +13,15 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 		* @param wPort - порт сервера.
 		* @param dwCountClient - количество клиентов.
 		* @param sInfoClient - параметры тестирования сети.
+		* @param pIocp - механизм Iocp.
 		*/
 		CNetworkTestCmd(
 			const std::string strIp,
 			const WORD wPort,
 			const DWORD dwCountClient,
-			const SInfoClient& sInfoClient)
-			:CNetworkTest(strIp, wPort, dwCountClient, sInfoClient, g_pIocp)
+			const SInfoClient& sInfoClient,
+			const std::shared_ptr<wname::io::iocp::CIocp>& pIocp)
+			:CNetworkTest(strIp, wPort, dwCountClient, sInfoClient, pIocp)
 		{
 			
 		}
@@ -30,11 +30,13 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 		* конструктор тестирования сети как сервер.
 		* @param strIp - IP адрес сервера.
 		* @param wPort - порт сервера.
+		* @param pIocp - механизм Iocp.
 		*/
 		CNetworkTestCmd(
 			const std::string strIp,
-			const WORD wPort)
-			:CNetworkTest(strIp, wPort, g_pIocp) 
+			const WORD wPort,
+			const std::shared_ptr<wname::io::iocp::CIocp>& pIocp)
+			:CNetworkTest(strIp, wPort, pIocp)
 		{
 
 		}
@@ -44,10 +46,18 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 		* @param pClient - клиент.
 		*/
 		void connectedClientHandler(
-			INetworkTestStatistic* const pClient) noexcept override
+			INetworkTestStatistic* const pClient,
+			const std::error_code ec) noexcept override
 		{
 			try
 			{
+				if (ec)
+				{
+					wprintf(L"\nКлиент %s подключился с ошибкой: %u",
+						pClient->getAddress().getAddress().c_str(),
+						ec.value());
+					return;
+				}
 				wprintf(L"\nКлиент подключился: %s", pClient->getAddress().getAddress().c_str());
 			}
 			catch (const std::exception& ex)
@@ -142,10 +152,19 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 		* @param pClient - клиент.
 		*/
 		void disconnectedClientHandler(
-			INetworkTestStatistic* const pClient) noexcept override
+			INetworkTestStatistic* const pClient,
+			const std::error_code ec) noexcept override
 		{
 			try
 			{
+				if (ec)
+				{
+					wprintf(L"\nКлиент %s отключился с ошибкой: %u",
+						pClient->getAddress().getAddress().c_str(),
+						ec.value());
+					return;
+				}
+
 				wprintf(L"\nКлиент отключился: %s", pClient->getAddress().getAddress().c_str());
 			}
 			catch (const std::exception& ex)
@@ -159,7 +178,8 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 		*/
 		~CNetworkTestCmd()
 		{
-
+			/** ждем всех */
+			release();
 		}
 	//==========================================================================
 		CNetworkTestCmd(const CNetworkTestCmd&) = delete;
@@ -173,17 +193,18 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 
 void printHelp()
 {
-	wprintf(L"\nИспользование: networkTest xxx.xxx.xxx.xxx:xxxxx [-c | -s] [-n <количество>] [-l <размер>] [-q <количество>] [-in | -out | -inout]");
+	wprintf(L"\nИспользование: networkTest xxx.xxx.xxx.xxx:xxxxx [-c | -s] [-n <количество>] [-l <размер>] [-q <количество>] [-in | -out | -inout] [-t <количество>]");
 	wprintf(L"\nПараметры:");
 	wprintf(L"\n\txxx.xxx.xxx.xxx:xxxxx\tАдрес подключения.");
 	wprintf(L"\n\t-c\t\t\tЗапустить как клиента.");
 	wprintf(L"\n\t-s\t\t\tЗапустить как сервер.");
-	wprintf(L"\n\t-n <количество>\t\tКоличество сессий. По-умолчанию 1.");
-	wprintf(L"\n\t-l <размер>\t\tРазмер буфера. По-умолчанию 1024.");
-	wprintf(L"\n\t-q <количество>\t\tКоличество буфером в очереди. По-умолчанию 1.");
-	wprintf(L"\n\t-in\t\t\tФлаг приема.");
-	wprintf(L"\n\t-out\t\t\tФлаг отправки.");
-	wprintf(L"\n\t-inout\t\t\tФлаг приема и отправки. По-умолчанию установлен.");
+	wprintf(L"\n\t-n <количество>\t\tКоличество сессий. По-умолчанию 1. Настройка только для киента.");
+	wprintf(L"\n\t-l <размер>\t\tРазмер буфера. По-умолчанию 1024. Настройка только для киента.");
+	wprintf(L"\n\t-q <количество>\t\tКоличество буфером в очереди. По-умолчанию 1. Настройка только для киента.");
+	wprintf(L"\n\t-in\t\t\tФлаг приема. Настройка только для киента.");
+	wprintf(L"\n\t-out\t\t\tФлаг отправки. Настройка только для киента.");
+	wprintf(L"\n\t-inout\t\t\tФлаг приема и отправки. По-умолчанию установлен. Настройка только для киента.");
+	wprintf(L"\n\t-t <количество>\t\tВремя роаботы. По-умолчанию 0xFFFFFFFF.");
 }
 
 std::string to_string(const std::wstring& wstr)
@@ -206,30 +227,31 @@ int wmain(DWORD argc, PWCHAR* argv)
 		return ERROR_SUCCESS;
 	}
 
-	g_pIocp = std::make_shared<wname::io::iocp::CIocp>();
+	auto pLogger = std::make_shared<wname::logger::CLoggerToConsole>();
+	auto pIocp = std::make_shared<wname::io::iocp::CIocp>(
+		1, std::thread::hardware_concurrency(), pLogger);
+	std::shared_ptr<CNetworkTestCmd> pNetworkTest;
 
 	std::wstring wStrAddress = argv[1];
 	std::string strAddress = to_string(wStrAddress);
 	std::string strIp(strAddress, 0, strAddress.find_last_of(L':'));
 	int port = atoi(&strAddress[strIp.size() + 1]);
+	DWORD dwTime = INFINITE;
 
 	if(_wcsicmp(argv[2], L"-s") == 0)
 	{
 		/** запускаем как сервер */
-		if (argc != 3)
+		if (argc > 3)
 		{
 			/** слишком много аргументов */
 			printHelp();
 			return ERROR_BAD_ARGUMENTS;
 		}
 
-		CNetworkTestCmd server(strIp.c_str(), port);
-
-		system("pause");
-		return ERROR_SUCCESS;
+		pNetworkTest = std::make_shared<CNetworkTestCmd>(
+			strIp.c_str(), port, pIocp);
 	}
-
-	if (_wcsicmp(argv[2], L"-c") == 0)
+	else if (_wcsicmp(argv[2], L"-c") == 0)
 	{
 		/** запускаем как клиент */
 		CNetworkTestCmd::SInfoClient sInfoClient = { 0 };
@@ -280,12 +302,28 @@ int wmain(DWORD argc, PWCHAR* argv)
 			sInfoClient.bIsRecv = !sInfoClient.bIsRecv;
 		}
 
-		CNetworkTestCmd server(strIp.c_str(), port, dwCountSession, sInfoClient);
-
-		system("pause");
-		return ERROR_SUCCESS;	
+		pNetworkTest = std::make_shared<CNetworkTestCmd>(
+			strIp.c_str(), port, dwCountSession, sInfoClient, pIocp);
 	}
-
-	printHelp();
-	return ERROR_BAD_ARGUMENTS;
+	else
+	{
+		printHelp();
+		return ERROR_BAD_ARGUMENTS;
+	}
+	
+	for (DWORD i = 3; i < argc; i++)
+	{
+		if (_wcsicmp(argv[i], L"-t") == 0 && (i + 1) < argc)
+		{
+			dwTime = _wtol(argv[i + 1]);
+		}
+	}
+	
+	CNetworkTestCmd::SStatistic statistic;
+	const auto ec = pNetworkTest->start(statistic, dwTime);
+	if (ec)
+	{
+		wprintf(L"\nОшибка в ходе выполнения работы: %u", ec.value());		
+	}
+	return ec.value();
 }
