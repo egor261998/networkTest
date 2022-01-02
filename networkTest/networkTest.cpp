@@ -235,19 +235,18 @@ int wmain(DWORD argc, PWCHAR* argv)
 	std::wstring wStrAddress = argv[1];
 	std::string strAddress = to_string(wStrAddress);
 	std::string strIp(strAddress, 0, strAddress.find_last_of(L':'));
+	if ((strIp.size() + 1) >= strAddress.size())
+	{
+		wprintf(L"\n\t Аргумент: \"%s\" введен неверно.", argv[1]);
+		printHelp();
+		return ERROR_BAD_ARGUMENTS;
+	}
+
 	int port = atoi(&strAddress[strIp.size() + 1]);
 	DWORD dwTime = INFINITE;
 
 	if(_wcsicmp(argv[2], L"-s") == 0)
 	{
-		/** запускаем как сервер */
-		if (argc > 3)
-		{
-			/** слишком много аргументов */
-			printHelp();
-			return ERROR_BAD_ARGUMENTS;
-		}
-
 		pNetworkTest = std::make_shared<CNetworkTestCmd>(
 			strIp.c_str(), port, pIocp);
 	}
@@ -264,18 +263,39 @@ int wmain(DWORD argc, PWCHAR* argv)
 
 		for (DWORD i = 3; i < argc; i++)
 		{
-			if (_wcsicmp(argv[i], L"-n") == 0 && (i + 1) < argc)
+			if (_wcsicmp(argv[i], L"-n") == 0)
 			{
+				if ((i + 1) >= argc)
+				{
+					wprintf(L"\n\t Аргумент: \"%s\" не содержит значение.", argv[i]);
+					printHelp();
+					return ERROR_BAD_ARGUMENTS;
+				}
+
 				dwCountSession = _wtol(argv[i + 1]);
 			}
 
-			if (_wcsicmp(argv[i], L"-l") == 0 && (i + 1) < argc)
+			if (_wcsicmp(argv[i], L"-l") == 0)
 			{
+				if ((i + 1) >= argc)
+				{
+					wprintf(L"\n\t Аргумент: \"%s\" не содержит значение.", argv[i]);
+					printHelp();
+					return ERROR_BAD_ARGUMENTS;
+				}
+
 				sInfoClient.dwSizeBuffer = _wtol(argv[i + 1]);
 			}
 
-			if (_wcsicmp(argv[i], L"-q") == 0 && (i + 1) < argc)
+			if (_wcsicmp(argv[i], L"-q") == 0)
 			{
+				if ((i + 1) >= argc)
+				{
+					wprintf(L"\n\t Аргумент: \"%s\" не содержит значение.", argv[i]);
+					printHelp();
+					return ERROR_BAD_ARGUMENTS;
+				}
+
 				sInfoClient.wBufferCount = (WORD)_wtol(argv[i + 1]);
 			}
 
@@ -307,14 +327,22 @@ int wmain(DWORD argc, PWCHAR* argv)
 	}
 	else
 	{
+		wprintf(L"\n\t Аргумент: \"%s\" должен указывать на тип запуска.", argv[2]);
 		printHelp();
 		return ERROR_BAD_ARGUMENTS;
 	}
 	
 	for (DWORD i = 3; i < argc; i++)
 	{
-		if (_wcsicmp(argv[i], L"-t") == 0 && (i + 1) < argc)
+		if (_wcsicmp(argv[i], L"-t") == 0)
 		{
+			if ((i + 1) >= argc)
+			{
+				wprintf(L"\n\t Аргумент: \"%s\" не содержит значение.", argv[i]);
+				printHelp();
+				return ERROR_BAD_ARGUMENTS;
+			}
+
 			dwTime = _wtol(argv[i + 1]);
 		}
 	}
@@ -325,5 +353,6 @@ int wmain(DWORD argc, PWCHAR* argv)
 	{
 		wprintf(L"\nОшибка в ходе выполнения работы: %u", ec.value());		
 	}
+
 	return ec.value();
 }
