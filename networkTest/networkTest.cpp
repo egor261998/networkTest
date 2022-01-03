@@ -71,7 +71,7 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 		* @param statisticClients - статистика.
 		*/
 		void statisticHandler(
-			const std::unordered_map<INetworkTestStatistic*, SStatisticClient> statisticClients) noexcept override
+			const std::unordered_map<INetworkTestStatistic*, SStatisticClient>& statisticClients) noexcept override
 		{
 			auto format = [] (UINT64 nValue)
 			{ 
@@ -117,7 +117,7 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 			UINT64 nAvgSendDataClients = 0;
 			UINT64 nAllSendDataClients = 0;
 
-			for (auto& [k, v] : _statisticClients)
+			for (auto& [k, v] : statisticClients)
 			{
 				assert(k != nullptr);
 
