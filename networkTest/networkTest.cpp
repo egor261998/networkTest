@@ -54,17 +54,24 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 		{
 			try
 			{
+				std::wstring wStrRecconnect;
+				if (dwReconnect > 0)
+				{
+					wStrRecconnect.append(L". Попыток подключения: ");
+					wStrRecconnect.append(std::to_wstring(dwReconnect));
+				}
+
 				if (ec)
 				{
-					wprintf(L"\nКлиент %s подключился с ошибкой: %u. Попыток подключения: %u.",
+					wprintf(L"\nКлиент %s подключился с ошибкой: %u%s",
 						pClient->getAddress().getAddress().c_str(),
 						ec.value(),
-						dwReconnect);
+						wStrRecconnect.c_str());
 					return;
 				}
-				wprintf(L"\nКлиент подключился: %s. Попыток подключения: %u.", 
+				wprintf(L"\nКлиент подключился: %s%s", 
 					pClient->getAddress().getAddress().c_str(),
-					dwReconnect);
+					wStrRecconnect.c_str());
 			}
 			catch (const std::exception& ex)
 			{
@@ -166,18 +173,25 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 		{
 			try
 			{
+				std::wstring wStrRecconnect;
+				if (dwReconnect > 0)
+				{
+					wStrRecconnect.append(L". Попыток подключения: ");
+					wStrRecconnect.append(std::to_wstring(dwReconnect));
+				}
+
 				if (ec)
 				{
-					wprintf(L"\nКлиент %s отключился с ошибкой: %u. Попыток подключения: %u.",
+					wprintf(L"\nКлиент %s отключился с ошибкой: %u%s",
 						pClient->getAddress().getAddress().c_str(),
 						ec.value(),
-						dwReconnect);
+						wStrRecconnect.c_str());
 					return;
 				}
 
-				wprintf(L"\nКлиент отключился: %s. Попыток подключения: %u.", 
+				wprintf(L"\nКлиент отключился: %s%s", 
 					pClient->getAddress().getAddress().c_str(),
-					dwReconnect);
+					wStrRecconnect.c_str());
 			}
 			catch (const std::exception& ex)
 			{
