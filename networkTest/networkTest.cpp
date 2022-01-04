@@ -44,21 +44,27 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 		/**
 		* уведомление о подключение клиента.
 		* @param pClient - клиент.
+		* @param dwReconnect - количество переподключений.
+		* @param ec - ошибка подключения.
 		*/
 		void connectedClientHandler(
 			INetworkTestStatistic* const pClient,
+			const DWORD dwReconnect,
 			const std::error_code ec) noexcept override
 		{
 			try
 			{
 				if (ec)
 				{
-					wprintf(L"\nКлиент %s подключился с ошибкой: %u",
+					wprintf(L"\nКлиент %s подключился с ошибкой: %u. Попыток подключения: %u.",
 						pClient->getAddress().getAddress().c_str(),
-						ec.value());
+						ec.value(),
+						dwReconnect);
 					return;
 				}
-				wprintf(L"\nКлиент подключился: %s", pClient->getAddress().getAddress().c_str());
+				wprintf(L"\nКлиент подключился: %s. Попыток подключения: %u.", 
+					pClient->getAddress().getAddress().c_str(),
+					dwReconnect);
 			}
 			catch (const std::exception& ex)
 			{
@@ -150,22 +156,28 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 		/**
 		* отключение клиента.
 		* @param pClient - клиент.
+		* @param dwReconnect - количество переподключений.
+		* @param ec - ошибка отключения.
 		*/
 		void disconnectedClientHandler(
 			INetworkTestStatistic* const pClient,
+			const DWORD dwReconnect,
 			const std::error_code ec) noexcept override
 		{
 			try
 			{
 				if (ec)
 				{
-					wprintf(L"\nКлиент %s отключился с ошибкой: %u",
+					wprintf(L"\nКлиент %s отключился с ошибкой: %u. Попыток подключения: %u.",
 						pClient->getAddress().getAddress().c_str(),
-						ec.value());
+						ec.value(),
+						dwReconnect);
 					return;
 				}
 
-				wprintf(L"\nКлиент отключился: %s", pClient->getAddress().getAddress().c_str());
+				wprintf(L"\nКлиент отключился: %s. Попыток подключения: %u.", 
+					pClient->getAddress().getAddress().c_str(),
+					dwReconnect);
 			}
 			catch (const std::exception& ex)
 			{
@@ -189,7 +201,6 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 	//==========================================================================
 	#pragma endregion
 };
-
 
 void printHelp()
 {
