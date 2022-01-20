@@ -205,7 +205,7 @@ class CNetworkTestCmd : public datatransfer::networktest::CNetworkTest
 		~CNetworkTestCmd()
 		{
 			/** ждем всех */
-			release();
+			release(true);
 		}
 	//==========================================================================
 		CNetworkTestCmd(const CNetworkTestCmd&) = delete;
